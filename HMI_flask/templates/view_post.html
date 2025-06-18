@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ post.title }}</title>
+</head>
+<body>
+    <h1>{{ post.title }}</h1>
+    <p>Author: {{ post.author }}</p>
+    <hr>
+    <p>{{ post.content }}</p>
+    <hr>
+    <a href="/board">← Back to List</a>
+
+    {% if username == post.author or role == 'admin' %}
+        | <a href="{{ url_for('delete_post', post_id=post_id) }}" onclick="return confirm('Are you sure you want to delete this post?');">🗑 Delete</a>
+    {% endif %}
+    {% if username == post.author or role == 'admin' %}
+        | <a href="{{ url_for('edit_post', post_id=post_id) }}">✏️ Edit</a>
+    {% endif %}
+
+</body>
+</html>
+

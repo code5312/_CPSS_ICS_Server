@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PLC Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f4f4f4;
+        }
+        h1 {
+            display: inline-block;
+        }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .add-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 14px;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+        .board-button {
+            background-color: white;
+            color: #4CAF50;
+            border: 2px solid #4CAF50;
+            padding: 8px 14px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-right: 10px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .board-button:hover {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .plc-container {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .plc-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px;
+            width: 220px;
+            box-shadow: 2px 2px 10px #ccc;
+        }
+        .plc-name {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .plc-status {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .details-link {
+            display: inline-block;
+            margin-top: 10px;
+            text-decoration: none;
+            color: #007BFF;
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <h1>📋 PLC Dashboard</h1>
+    <div>
+        <a href="/board" class="board-button">📋 Message Board</a>
+        {% if session.get("role") == "admin" %}
+            <a href="/add_plc_form" class="add-button">➕ Add new PLC</a>
+        {% endif %}
+        <a href="/logout" style="margin-left: 15px;">Logout</a>
+    </div>
+</div>
+
+<div class="plc-container">
+    {% for plc in plc_list %}
+        <div class="plc-card">
+            <div class="plc-name">{{ plc }}</div>
+            <div class="plc-status">Status: {{ status[plc].machine_status }}</div>
+            <div class="plc-status">RPM: {{ status[plc].rpm }} RPM</div>
+            <a class="details-link" href="{{ url_for('plc_page', plc_id=plc) }}">Control →</a>
+        </div>
+    {% endfor %}
+</div>
+
+</body>
+</html>

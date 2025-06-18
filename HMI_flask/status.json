@@ -1,0 +1,1 @@
+{"PLC_1": {"machine_status": "STOPPED", "rpm": 2000}, "PLC_2": {"machine_status": "RUNNING", "rpm": 1115}, "new": {"machine_status": "STOPPED", "rpm": 0}}

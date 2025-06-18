@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Message Board</title>
+</head>
+<body>
+    <h1>📋 Message Board</h1>
+    <a href="/">← Back to Dashboard</a> |
+    <a href="/board/new">✏️ New Post</a>
+    <hr>
+    <ul>
+        {% for post_id, post in posts.items() %}
+            <li>
+                <a href="{{ url_for('view_post', post_id=post_id) }}">
+                    {{ post.title }}
+                </a> — by {{ post.author }}
+            </li>
+        {% else %}
+            <p>No posts yet.</p>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+

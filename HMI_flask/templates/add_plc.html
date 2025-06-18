@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PLC Add</title>
+</head>
+<body>
+    <h2>➕ Add new PLC</h2>
+    <form method="POST" action="/add_plc">
+        <label>PLC name: <input type="text" name="plc_id" required></label><br>
+        <label>Initial RPM: <input type="number" name="rpm" min="0" required></label><br>
+        <label>Initial Status:
+            <select name="machine_status">
+                <option value="RUNNING">RUNNING</option>
+                <option value="STOPPED">STOPPED</option>
+            </select>
+        </label><br>
+        <button type="submit">Register</button>
+    </form>
+    <p><a href="/">← back to Dashboard</a></p>
+</body>
+</html>

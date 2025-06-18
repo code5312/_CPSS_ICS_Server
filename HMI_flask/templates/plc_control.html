@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>{{ plc_id }} Control</title></head>
+<body>
+    <h1>{{ plc_id }} control</h1>
+    <p>status: {{ status.machine_status }}</p>
+    <p>RPM: {{ status.rpm }} RPM</p>
+    <p><a href="/">← back to PLC list</a></p>
+
+    {% if is_admin %}
+        <form method="POST" action="/plc/{{ plc_id }}/rpm">
+            <input type="number" name="rpm" min="0" value="{{ status.rpm }}">
+            <button type="submit">Set</button>
+        </form>
+        <form method="POST" action="/plc/{{ plc_id }}/control">
+            <button type="submit" name="action" value="start">ON</button>
+            <button type="submit" name="action" value="stop">OFF</button>
+        </form>
+    {% else %}
+        <p style="color: gray;">(Guest cannot control!)</p>
+    {% endif %}
+</body>
+</html>
