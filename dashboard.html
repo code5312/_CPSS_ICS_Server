@@ -1,0 +1,70 @@
+{% if user %}
+  <h2>Welcome, {{ user }}</h2>
+  {% with messages = get_flashed_messages() %}
+    {% for msg in messages %}
+      <script>alert("{{ msg }}")</script>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="post">
+    Set RPM (회전수): <input type="text" name="rpm">
+    <button type="submit">Apply</button>
+  </form>
+
+  <p>🟢 현재 RPM: <b id="latest-rpm">{{ latest_rpm.current_rpm if latest_rpm else '-' }}</b></p>
+
+  <h3>📜 최근 RPM 수정 로그 (최근 10개)</h3>
+  <table border="1">
+    <thead>
+      <tr>  
+        <th>시간</th>
+        <th>사용자</th>
+        <th>입력값</th>
+        <th>현재 RPM</th>
+      </tr>
+    </thead>
+    <tbody id="log-table-body">
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.timestamp }}</td>
+        <td>{{ log.username }}</td>
+        <td>{{ log.value }}</td>
+        <td>{{ log.current_rpm }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <a href="/logout">Logout</a>
+
+  <script>
+    function updateLogs() {
+      fetch('/api/rpm_logs')
+        .then(response => response.json())
+        .then(data => {
+          const tbody = document.getElementById("log-table-body");
+          const rpmDisplay = document.getElementById("latest-rpm");
+
+          tbody.innerHTML = "";
+          data.forEach(log => {
+            const row = `<tr>
+              <td>${log.timestamp}</td>
+              <td>${log.username}</td>
+              <td>${log.value}</td>
+              <td>${log.current_rpm}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+          });
+
+          if (data.length > 0) {
+            rpmDisplay.innerText = data[0].current_rpm;
+          }
+        });
+    }
+
+    setInterval(updateLogs, 5000); //업데이트 시간
+  </script>
+{% else %}
+  <h1>Welcome, CPS!</h1>
+  <p><a href="/login">Login</a> to access HMI control panel.</p>
+{% endif %}

@@ -1,0 +1,14 @@
+<h2>Register</h2>
+{% with messages = get_flashed_messages() %}
+  {% for msg in messages %}
+    <script>alert("{{ msg }}")</script>
+  {% endfor %}
+{% endwith %}
+
+<form method="post">
+  Username: <input type="text" name="username"><br>
+  Password: <input type="password" name="password"><br>
+  Re-type Password: <input type="password" name="re-password"><br>
+  <button type="submit">Register</button>
+</form>
+<a href="/login">Login</a>
