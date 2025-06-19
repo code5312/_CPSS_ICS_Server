@@ -1,0 +1,34 @@
+<h2>🔐 Admin Configuration Page</h2>
+<a href="{{ url_for('main.index') }}">← Back to Dashboard</a>
+
+{% with messages = get_flashed_messages() %}
+  {% for msg in messages %}
+    <script>alert("{{ msg }}")</script>
+  {% endfor %}
+{% endwith %}
+
+<h3>👤 사용자 목록</h3>
+<ul>
+  {% for user in users %}
+    <li>
+      ID {{ user.id }} - {{ user.username }}
+      {% if user.username != 'admin' %}
+        <form method="post" style="display:inline;">
+          <button type="submit" name="action" value="delete_user_{{ user.id }}">❌ 삭제</button>
+        </form>
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
+
+<hr>
+
+<h3>⚙️ SCADA 시스템 조작</h3>
+<form method="post">
+  <button type="submit" name="action" value="reset">🧹 PLC 초기화</button>
+  <button type="submit" name="action" value="shutdown">⚠️ 긴급 정지</button>
+</form>
+
+{% if scada_status %}
+  <p><b>{{ scada_status }}</b></p>
+{% endif %}

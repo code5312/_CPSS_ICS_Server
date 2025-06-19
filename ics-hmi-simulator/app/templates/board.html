@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>소통 게시판</title>
+</head>
+<body>
+    <h1>소통 게시판</h1>
+    <a href="{{ url_for('main.index') }}">← 대시보드로</a>
+    <hr>
+    <form method="POST">
+        <textarea name="content" rows="3" cols="60" placeholder="메시지를 입력하세요" required></textarea><br>
+        <button type="submit">작성</button>
+    </form>
+    <hr>
+    <h3>최근 게시글</h3>
+    <ul>
+        {% for post in posts %}
+            <li>
+                <b>{{ post.username }}</b> ({{ post.timestamp }})<br>
+                {{ post.content | e }}
+                {% if username == post.username or (session['role'] == 'admin') %}
+                    <form method="POST" action="{{ url_for('main.delete_post', post_id=post.id) }}" style="display:inline;">
+                        <button type="submit" onclick="return confirm('정말 삭제하시겠습니까?');">삭제</button>
+                    </form>
+                {% endif %}
+            </li>
+            <hr>
+        {% else %}
+            <li>아직 게시글이 없습니다.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html> 
