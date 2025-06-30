@@ -83,6 +83,22 @@ def login():
             session['username'] = username
             session['role'] = user['role']
             login_attempts[username] = {"count": 0, "locked_until": None}
+            
+            # ✅ 세션 디코딩 및 로그 저장
+            sid = request.cookies.get('session')
+            si = SecureCookieSessionInterface()
+            serializer = si.get_signing_serializer(current_app)
+            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            if serializer and sid:
+                try:
+                    data = serializer.loads(sid)
+                    with open('session_log.txt', 'a') as f:
+                        f.write(f"{now} - [LOGIN] Decoded session: {data}\n")
+                except Exception as e:
+                    with open('session_log.txt', 'a') as f:
+                        f.write(f"{now} - [LOGIN] Session decode error: {e}\n")
+
             return redirect(url_for('main.index'))
 
     return render_template('login.html')
