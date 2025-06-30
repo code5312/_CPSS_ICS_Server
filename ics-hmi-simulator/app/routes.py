@@ -63,6 +63,13 @@ def register():
 
 @main.route('/status')
 def status():
+    sid = request.cookies.get('session')
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    # 세션 ID만 따로 로그 파일에 기록
+    with open('session_log.txt', 'a') as f:
+        f.write(f"{now} - Session ID: {sid}\n")
+        
     return jsonify({
         "rpm": current_status["rpm"],
         "temperature": current_status["temperature"],
