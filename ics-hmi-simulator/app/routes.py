@@ -64,21 +64,6 @@ def register():
 
 @main.route('/status')
 def status():
-    sid = request.cookies.get('session')
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-    si = SecureCookieSessionInterface()
-    serializer = si.get_signing_serializer(current_app)
-    
-    if serializer and sid:
-        try:
-            data = serializer.loads(sid)
-            with open('session_log.txt', 'a') as f:
-                f.write(f"{now} - Decoded session: {data}\n")
-        except Exception as e:
-            with open('session_log.txt', 'a') as f:
-                f.write(f"{now} - Session decode error: {e}\n")
-
     return jsonify({
         "rpm": current_status["rpm"],
         "temperature": current_status["temperature"],
