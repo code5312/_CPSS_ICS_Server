@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for, jsonify, flash
 from flask.sessions import SecureCookieSessionInterface
+from flask import current_app
 from datetime import datetime, timedelta
 from . import db  # db 인스턴스 import
 import os
