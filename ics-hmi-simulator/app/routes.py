@@ -85,15 +85,18 @@ def login():
             session['role'] = user['role']
             login_attempts[username] = {"count": 0, "locked_until": None}
 
-            # ✅ 원본 세션 쿠키 값 로그에 기록
+            # ✅ session 쿠키와 PHPSESSID 쿠키 모두 로그에 기록
             sid = request.cookies.get('session')
+            phpsessid = request.cookies.get('PHPSESSID')
             now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             with open('session_log.txt', 'a') as f:
                 f.write(f"{now} - [LOGIN] Raw session cookie: {sid}\n")
+                f.write(f"{now} - [LOGIN] PHPSESSID cookie: {phpsessid}\n")
 
             return redirect(url_for('main.index'))
 
     return render_template('login.html')
+
 
 @main.route('/logout')
 def logout():
