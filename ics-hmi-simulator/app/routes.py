@@ -234,7 +234,7 @@ def delete_post(post_id):
         db.session.commit()
     return redirect(url_for('main.board'))
 
-WEBHOOK_URL = 'https://discord.com/api/webhooks/1389488881518514216/Ci1OjrfMxlnoXuT86w5mjtOUfHWxpJO_Ga6FTm5tghHd1CL59T3uD4mXLNevyIGa_QFU'
+WEBHOOK_URL = ''
 
 def send_to_discord(message):
     data = {
