@@ -8,10 +8,12 @@
     <h1>소통 게시판</h1>
     <a href="{{ url_for('main.index') }}">← 대시보드로</a>
     <hr>
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
         <textarea name="content" rows="3" cols="60" placeholder="메시지를 입력하세요" required></textarea><br>
+        <input type="file" name="file"><br>  <!-- ✅ 이 줄 추가 -->
         <button type="submit">작성</button>
     </form>
+
     <hr>
     <h3>최근 게시글</h3>
     <ul>
