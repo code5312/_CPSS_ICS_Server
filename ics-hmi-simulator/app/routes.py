@@ -70,10 +70,16 @@ def register():
         if password != confirm_password:
             return render_template('register.html', error="비밀번호가 일치하지 않습니다.")
 
-        users[username] = {"password": password, "role": "guest"}  # 기본적으로 guest로 추가
+        users[username] = {"password": password, "role": "guest"}
+
+        new_user = User(username=username, password=password, role='guest')
+        db.session.add(new_user)
+        db.session.commit()
+
         return render_template('register.html', success="회원가입이 완료되었습니다.")
 
     return render_template('register.html')
+
 
 @main.route('/status')
 def status():
