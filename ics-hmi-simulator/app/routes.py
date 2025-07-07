@@ -272,6 +272,21 @@ def execute_file(post_id):
     except Exception as e:
         return f"Execution error: {str(e)}", 500
 
+@main.route('/search_user')
+def search_user():
+    if 'username' not in session:
+        return redirect(url_for('main.login'))
+
+    username = request.args.get('q', '')
+    try:
+        # 취약한 Raw SQL 구조 유지하되, admin 정보는 필터링
+        result = db.session.execute(
+            text(f"SELECT * FROM user WHERE username = '{username}' AND username != 'admin'")
+        )
+        users = [dict(row._mapping) for row in result]
+        return jsonify(users)
+    except Exception as e:
+        return f"Error: {str(e)}", 500
 
 WEBHOOK_URL = ''
 
