@@ -46,6 +46,16 @@ class BoardPost(db.Model):
     username = db.Column(db.String(20))
     content = db.Column(db.Text)
     timestamp = db.Column(db.String(40))
+    filename = db.Column(db.String(80))
+
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'py', 'txt', 'sh'}
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
 @main.route('/register', methods=['GET', 'POST'])
 def register():
@@ -213,13 +223,23 @@ def api_rpm_logs():
 def board():
     if 'username' not in session:
         return redirect(url_for('main.login'))
+
     if request.method == 'POST':
         content = request.form.get('content', '').strip()
-        if content:
+        file = request.files.get('file')
+        filename = None
+
+        if file and allowed_file(file.filename):
+            filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}"
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(filepath)
+
+        if content or filename:
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            post = BoardPost(username=session['username'], content=content, timestamp=now)
+            post = BoardPost(username=session['username'], content=content, timestamp=now, filename=filename)
             db.session.add(post)
             db.session.commit()
+
     posts = BoardPost.query.order_by(BoardPost.id.desc()).limit(20).all()
     return render_template('board.html', posts=posts, username=session['username'])
 
@@ -233,6 +253,25 @@ def delete_post(post_id):
         db.session.delete(post)
         db.session.commit()
     return redirect(url_for('main.board'))
+
+@main.route('/board/exec/<int:post_id>', methods=['POST'])
+def execute_file(post_id):
+    if 'username' not in session:
+        return redirect(url_for('main.login'))
+
+    post = BoardPost.query.get_or_404(post_id)
+
+    if not post.filename:
+        return "No file to execute.", 400
+
+    filepath = os.path.join(UPLOAD_FOLDER, post.filename)
+
+    try:
+        output = os.popen(f'python {filepath}').read()
+        return f"<pre>{output}</pre>"
+    except Exception as e:
+        return f"Execution error: {str(e)}", 500
+
 
 WEBHOOK_URL = ''
 
