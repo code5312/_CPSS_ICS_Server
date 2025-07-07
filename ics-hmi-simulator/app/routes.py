@@ -277,16 +277,31 @@ def search_user():
     if 'username' not in session:
         return redirect(url_for('main.login'))
 
-    username = request.args.get('q', '')
-    try:
-        # 취약한 Raw SQL 구조 유지하되, admin 정보는 필터링
-        result = db.session.execute(
-            text(f"SELECT * FROM user WHERE username = '{username}' AND username != 'admin'")
-        )
-        users = [dict(row._mapping) for row in result]
-        return jsonify(users)
-    except Exception as e:
-        return f"Error: {str(e)}", 500
+    query = request.args.get('q', '')
+    users = []
+
+    if query:
+        try:
+            # SQL Injection 발생 가능하게 만들되, admin 정보는 숨김
+            result = db.session.execute(
+                text(f"SELECT * FROM user WHERE username = '{query}' AND username != 'admin'")
+            )
+            users = [dict(row._mapping) for row in result]
+        except Exception as e:
+            return f"Error: {str(e)}", 500
+
+    # 기존 index.html에 전달
+    return render_template(
+        'index.html',
+        rpm=current_status["rpm"],
+        temperature=current_status["temperature"],
+        pressure=current_status["pressure"],
+        username=session['username'],
+        role=session['role'],
+        thresholds=thresholds,
+        users=users,
+        query=query
+    )
 
 WEBHOOK_URL = ''
 
