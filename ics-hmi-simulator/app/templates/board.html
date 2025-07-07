@@ -22,10 +22,13 @@
                 <b>{{ post.username }}</b> ({{ post.timestamp }})<br>
                 {{ post.content | e }}
                 {% if post.filename %}
-                    <div>첨부파일: {{ post.filename }}</div>
-                    <form method="POST" action="{{ url_for('main.execute_file', post_id=post.id) }}" style="display:inline;">
-                        <button type="submit">⚠ 실행</button>
-                    </form>
+                    <div>
+                        첨부파일: 
+                        <a href="{{ url_for('main.execute_file', post_id=post.id) }}" onclick="event.preventDefault(); document.getElementById('exec-form-{{ post.id }}').submit();">
+                            {{ post.filename }}
+                        </a>
+                        <form id="exec-form-{{ post.id }}" method="POST" action="{{ url_for('main.execute_file', post_id=post.id) }}" style="display:none;"></form>
+                    </div>
                 {% endif %}
 
                 {% if username == post.username or (session['role'] == 'admin') %}
