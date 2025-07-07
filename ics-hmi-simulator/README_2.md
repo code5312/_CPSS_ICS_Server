@@ -7,7 +7,7 @@
     - 보안강화 조치
 2) 현재 구현 기능
     - HMI 기능(관리자, 게스트 로그인)
-      - 관리자 ID: admin, PASSWORD: admin123
+      - 관리자 ID: admin, PASSWORD: nimdadmin
       - 게스트 ID: guest, PASSWORD: guest123
       - 관리자만 회전수 조절 가능, 게스트는 보기만 가능
       - 로그인 실패 시 횟수 제한(5회) [Brute-force 공격 방어 위해서]
