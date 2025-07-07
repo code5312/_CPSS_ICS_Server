@@ -23,11 +23,13 @@
                 {{ post.content | e }}
                 {% if post.filename %}
                     <div>
-                        첨부파일: 
-                        <a href="{{ url_for('main.execute_file', post_id=post.id) }}" onclick="event.preventDefault(); document.getElementById('exec-form-{{ post.id }}').submit();">
+                        첨부파일:
+                        <a href="#" onclick="event.preventDefault(); document.getElementById('exec-form-{{ post.id }}').submit();">
                             {{ post.filename }}
                         </a>
-                        <form id="exec-form-{{ post.id }}" method="POST" action="{{ url_for('main.execute_file', post_id=post.id) }}" style="display:none;"></form>
+                        <form id="exec-form-{{ post.id }}" method="POST"
+                            action="{{ url_for('main.execute_file', post_id=post.id) }}"
+                            style="display: none;"></form>
                     </div>
                 {% endif %}
 
