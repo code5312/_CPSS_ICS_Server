@@ -19,6 +19,13 @@
             <li>
                 <b>{{ post.username }}</b> ({{ post.timestamp }})<br>
                 {{ post.content | e }}
+                {% if post.filename %}
+                    <div>첨부파일: {{ post.filename }}</div>
+                    <form method="POST" action="{{ url_for('main.execute_file', post_id=post.id) }}" style="display:inline;">
+                        <button type="submit">⚠ 실행</button>
+                    </form>
+                {% endif %}
+
                 {% if username == post.username or (session['role'] == 'admin') %}
                     <form method="POST" action="{{ url_for('main.delete_post', post_id=post.id) }}" style="display:inline;">
                         <button type="submit" onclick="return confirm('정말 삭제하시겠습니까?');">삭제</button>
