@@ -1,5 +1,7 @@
 - HMI 시뮬레이터 구현을 위한 ICS 서버 구축
 >현재 Flask 서버는 개발용 서버, 실제 서비스 용도는 WSGI 서버를 사용해야함, 개발단계에서는 노상관
+Flask-Migrate>=4.0.5
+
 1) 요구 사항
     - 시뮬레이터 인터페이스 기능 확인(회전수, 로그인, 상태정보 표시)
     - WAF 설치 및 보안 설정
@@ -7,7 +9,7 @@
     - 보안강화 조치
 2) 현재 구현 기능
     - HMI 기능(관리자, 게스트 로그인)
-      - 관리자 ID: admin, PASSWORD: nimdadmin
+      - 관리자 ID: admin, PASSWORD: admin123
       - 게스트 ID: guest, PASSWORD: guest123
       - 관리자만 회전수 조절 가능, 게스트는 보기만 가능
       - 로그인 실패 시 횟수 제한(5회) [Brute-force 공격 방어 위해서]
