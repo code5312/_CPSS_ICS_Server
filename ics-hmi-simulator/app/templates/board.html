@@ -1,48 +1,31 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <title>소통 게시판</title>
-</head>
-<body>
-    <h1>소통 게시판</h1>
-    <a href="{{ url_for('main.index') }}">← 대시보드로</a>
-    <hr>
-    <form method="POST" enctype="multipart/form-data">
-        <textarea name="content" rows="3" cols="60" placeholder="메시지를 입력하세요" required></textarea><br>
-        <input type="file" name="file"><br>  <!-- ✅ 이 줄 추가 -->
-        <button type="submit">작성</button>
-    </form>
-
-    <hr>
-    <h3>최근 게시글</h3>
-    <ul>
-        {% for post in posts %}
-            <li>
-                <b>{{ post.username }}</b> ({{ post.timestamp }})<br>
-                {{ post.content | e }}
-                {% if post.filename %}
-                    <div>
-                        첨부파일:
-                        <a href="#" onclick="event.preventDefault(); document.getElementById('exec-form-{{ post.id }}').submit();">
-                            {{ post.filename }}
-                        </a>
-                        <form id="exec-form-{{ post.id }}" method="POST"
-                            action="{{ url_for('main.execute_file', post_id=post.id) }}"
-                            style="display: none;"></form>
-                    </div>
-                {% endif %}
-
-                {% if username == post.username or (session['role'] == 'admin') %}
-                    <form method="POST" action="{{ url_for('main.delete_post', post_id=post.id) }}" style="display:inline;">
-                        <button type="submit" onclick="return confirm('정말 삭제하시겠습니까?');">삭제</button>
-                    </form>
-                {% endif %}
-            </li>
-            <hr>
-        {% else %}
-            <li>아직 게시글이 없습니다.</li>
-        {% endfor %}
-    </ul>
-</body>
-</html> 
+<!-- board.html -->
+{% extends 'base.html' %}
+{% block title %}게시판 | ICS HMI{% endblock %}
+{% block content %}
+<h2>소통 게시판</h2>
+<a href="{{ url_for('main.index') }}">← 대시보드로</a>
+<hr>
+<form method="POST">
+  <div class="mb-3">
+    <textarea name="content" rows="3" class="form-control" placeholder="메시지를 입력하세요" required></textarea>
+  </div>
+  <button type="submit" class="btn btn-primary">작성</button>
+</form>
+<hr>
+<h4>최근 게시글</h4>
+<ul class="list-group">
+  {% for post in posts %}
+    <li class="list-group-item">
+      <strong>{{ post.username }}</strong> ({{ post.timestamp }})<br>
+      <div>{{ post.content | e }}</div>
+      {% if username == post.username or (session['role'] == 'admin') %}
+        <form method="POST" action="{{ url_for('main.delete_post', post_id=post.id) }}" class="d-inline">
+          <button type="submit" class="btn btn-sm btn-danger mt-2" onclick="return confirm('정말 삭제하시겠습니까?');">삭제</button>
+        </form>
+      {% endif %}
+    </li>
+  {% else %}
+    <li class="list-group-item">아직 게시글이 없습니다.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

