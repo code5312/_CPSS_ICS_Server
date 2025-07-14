@@ -101,15 +101,28 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+
+        # 🔍 먼저 users 딕셔너리에서 찾기
         user = users.get(username)
 
-        # 🔓 로그인 성공
+        # ❗ 없으면 DB에서 찾기
+        if not user:
+            db_user = User.query.filter_by(username=username).first()
+            if db_user:
+                # users 딕셔너리에 동기화
+                user = {
+                    "password": db_user.password,
+                    "role": db_user.role
+                }
+                users[username] = user  # 동기화
+
+        # ✅ 비밀번호 검사
         if user and user["password"] == password:
             session['username'] = username
             session['role'] = user['role']
             login_attempts[username] = {"count": 0, "locked_until": None}
 
-            # ✅ session 쿠키와 PHPSESSID 쿠키 모두 로그에 기록
+            # 로그 기록
             sid = request.cookies.get('session')
             phpsessid = request.cookies.get('PHPSESSID')
             now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -120,6 +133,7 @@ def login():
             return redirect(url_for('main.index'))
 
     return render_template('login.html')
+
 
 
 @main.route('/logout')
