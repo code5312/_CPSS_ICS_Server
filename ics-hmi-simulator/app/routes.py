@@ -320,7 +320,7 @@ def import_image():
         if not URL:
             return render_template("soap.html", message="URL을 입력하십시오.")
         else:
-            service = Service(executable_path="/home/bteam/Desktop/_CPSS_ICS_Server/ics-hmi-simulatorchromedriver")
+            service = Service(executable_path="/home/bteam/Desktop/_CPSS_ICS_Server/ics-hmi-simulator/chromedriver")
             options = webdriver.ChromeOptions()
             for arg in [
                 "headless",
