@@ -1,8 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for, jsonify, flash
 from flask.sessions import SecureCookieSessionInterface
 from flask import current_app
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from sqlalchemy import text
 from datetime import datetime, timedelta
 from time import sleep
@@ -312,6 +310,17 @@ def search_user():
         users=users,
         query=query
     )
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+
+chrome_options = Options()
+chrome_options.add_argument("--headless=new")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--disable-gpu")
+chrome_options.add_argument("--remote-debugging-port=9222")
 
 @main.route('/soap', methods = ["GET", "POST"])
 def import_image():
