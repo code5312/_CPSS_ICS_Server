@@ -290,15 +290,17 @@ def search_user():
 
     if query:
         try:
-            # SQL Injection 발생 가능하게 만들되, admin 정보는 숨김
-            result = db.session.execute(
-                text(f"SELECT * FROM user WHERE username = '{query}' AND username != 'admin'")
-            )
+            if session.get('username') == 'admin':
+                sql = text(f"SELECT * FROM user WHERE username = '{query}'")
+            else:
+                sql = text(f"SELECT * FROM user WHERE username = '{query}' AND username != 'admin'")
+
+            result = db.session.execute(sql)
             users = [dict(row._mapping) for row in result]
+
         except Exception as e:
             return f"Error: {str(e)}", 500
 
-    # 기존 index.html에 전달
     return render_template(
         'index.html',
         rpm=current_status["rpm"],
@@ -310,6 +312,7 @@ def search_user():
         users=users,
         query=query
     )
+
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
