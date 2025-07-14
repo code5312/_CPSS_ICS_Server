@@ -323,20 +323,18 @@ def import_image():
         if not URL:
             return render_template("soap.html", message="URL을 입력하십시오.")
         else:
+            service = Service(executable_path="/usr/local/bin/chromedriver")
             options = webdriver.ChromeOptions()
             for arg in [
                 "headless",
+                "window-size=1920x1080",
                 "disable-gpu",
                 "no-sandbox",
                 "disable-dev-shm-usage",
-                "--remote-debugging-port=9222"
             ]:
                 options.add_argument(arg)
 
-            driver = webdriver.Chrome(
-                service=Service(ChromeDriverManager(version="114.0.5735.90").install()),
-                options=options
-            )
+            driver = webdriver.Chrome(service=service, options=options)
             driver.set_page_load_timeout(3)
 
             try:
