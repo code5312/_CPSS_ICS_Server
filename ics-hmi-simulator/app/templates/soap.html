@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>이미지 URL로 가져오기</title>
+</head>
+<body>
+    <h1>문제: 이 페이지는 URL에 해당하는 이미지를 가져오는 기능을 제공하지만, 미완성되었습니다.
+    </h1>
+
+    <hr>
+
+    <form action="/soap" method="POST">
+        <label for="URL">URL:</label>
+        <input type="text" name="URL" id="URL" placeholder="이미지 URL을 입력하세요">
+        <button type="submit">전송</button>
+    </form>
+
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+
+</body>
+</html>
