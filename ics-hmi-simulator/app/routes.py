@@ -333,7 +333,10 @@ def import_image():
             ]:
                 options.add_argument(arg)
 
-            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+            driver = webdriver.Chrome(
+                service=Service(ChromeDriverManager(version="114.0.5735.90").install()),
+                options=options
+            )
             driver.set_page_load_timeout(3)
 
             try:
