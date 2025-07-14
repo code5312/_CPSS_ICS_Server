@@ -66,13 +66,18 @@ def register():
         password = request.form['password']
         confirm_password = request.form['confirm_password']
 
-        if username in users:
+        # 💡 DB에서 이미 존재하는 username 확인
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user or username in users:
             return render_template('register.html', error="이미 존재하는 아이디입니다.")
+        
         if password != confirm_password:
             return render_template('register.html', error="비밀번호가 일치하지 않습니다.")
 
+        # 딕셔너리에도 저장
         users[username] = {"password": password, "role": "guest"}
 
+        # DB에도 저장
         new_user = User(username=username, password=password, role='guest')
         db.session.add(new_user)
         db.session.commit()
