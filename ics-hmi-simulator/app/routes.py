@@ -338,8 +338,15 @@ def import_image():
 
             driver = webdriver.Chrome(service=service, options=options)
             driver.set_page_load_timeout(3)
+            driver.get("http://localhost:6126")
+            sleep(1)
+
+            driver.find_element(By.NAME, "username").send_keys("admin")
+            driver.find_element(By.NAME, "password").send_keys("nimdadmin")
+            driver.find_element(By.NAME, "submit").click()
 
             try:
+                
                 driver.get(URL)
                 sleep(1)
                 html_content = driver.page_source
