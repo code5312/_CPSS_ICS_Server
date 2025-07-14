@@ -5,6 +5,7 @@
 </head>
 <body>
     <h1>문제: 이 페이지는 URL에 해당하는 이미지를 가져오는 기능을 제공하지만, 미완성되었습니다.
+        이 기능을 본 서버의 취약한 점과 연계하여 공격하세요!
     </h1>
 
     <hr>
@@ -19,5 +20,12 @@
         <p>{{ message }}</p>
     {% endif %}
 
+    {% if raw_html %}
+    <hr>
+    <h2> 페이지 내용:</h2>
+    <div style="border: 1px solid #ccc; padding: 10px; max-height: 500px; overflow: auto;">
+        {{ raw_html|safe }}
+    </div>
+    {% endif %}
 </body>
 </html>
