@@ -314,6 +314,7 @@ def search_user():
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 
 @main.route('/soap', methods = ["GET", "POST"])
 def import_image():
@@ -322,7 +323,6 @@ def import_image():
         if not URL:
             return render_template("soap.html", message="URL을 입력하십시오.")
         else:
-            service = Service(executable_path="/home/bteam/Desktop/_CPSS_ICS_Server/ics-hmi-simulator/chromedriver")
             options = webdriver.ChromeOptions()
             for arg in [
                 "headless",
@@ -333,7 +333,7 @@ def import_image():
             ]:
                 options.add_argument(arg)
 
-            driver = webdriver.Chrome(service=service, options=options)
+            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
             driver.set_page_load_timeout(3)
 
             try:
