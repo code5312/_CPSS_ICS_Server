@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, session, url_for, jsonify, flash
+from flask import Blueprint, render_template, request, redirect, session, url_for, jsonify, flash, Markup
 from flask.sessions import SecureCookieSessionInterface
 from flask import current_app
 from sqlalchemy import text
@@ -341,12 +341,13 @@ def import_image():
             try:
                 driver.get(URL)
                 sleep(1)
+                html_content = driver.page_source
             except Exception as e:
                 return render_template("soap.html", message=f"접속 실패: {e}")
             finally:
                 driver.quit()
 
-            return render_template("soap.html", message="이미지를 성공적으로 불러왔습니다.")
+            return render_template("soap.html", raw_html=Markup(html_content))
     else:
         return render_template("soap.html")
 
