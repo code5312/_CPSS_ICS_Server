@@ -315,13 +315,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 
-chrome_options = Options()
-chrome_options.add_argument("--headless=new")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-chrome_options.add_argument("--disable-gpu")
-chrome_options.add_argument("--remote-debugging-port=9222")
-
 @main.route('/soap', methods = ["GET", "POST"])
 def import_image():
     if request.method == "POST":
@@ -333,10 +326,10 @@ def import_image():
             options = webdriver.ChromeOptions()
             for arg in [
                 "headless",
-                "window-size=1920x1080",
                 "disable-gpu",
                 "no-sandbox",
                 "disable-dev-shm-usage",
+                "--remote-debugging-port=9222"
             ]:
                 options.add_argument(arg)
 
