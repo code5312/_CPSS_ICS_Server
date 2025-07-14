@@ -350,13 +350,12 @@ def import_image():
                 
                 driver.get(URL)
                 sleep(1)
-                html_content = driver.page_source
             except Exception as e:
                 return render_template("soap.html", message=f"접속 실패: {e}")
             finally:
                 driver.quit()
 
-            return render_template("soap.html", raw_html=Markup(html_content))
+            return render_template("soap.html", message=f"이미지를 가져왔습니다")
     else:
         return render_template("soap.html")
 
