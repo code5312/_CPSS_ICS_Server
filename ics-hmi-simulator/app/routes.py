@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, session, url_for, jsonify, flash, Markup
+from flask import Blueprint, render_template, request, redirect, session, url_for, jsonify, flash
 from flask.sessions import SecureCookieSessionInterface
 from flask import current_app
 from sqlalchemy import text
@@ -315,6 +315,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from markupsafe import Markup
 
 @main.route('/soap', methods = ["GET", "POST"])
 def import_image():
