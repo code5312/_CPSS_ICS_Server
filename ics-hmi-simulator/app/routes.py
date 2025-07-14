@@ -292,6 +292,7 @@ def search_user():
         try:
             if session.get('username') == 'admin':
                 if query == 'admin':
+                    # 하드코딩된 admin 계정 정보
                     users = [{
                         'id': 0,
                         'username': 'admin',
@@ -304,9 +305,8 @@ def search_user():
                     users = [dict(row._mapping) for row in result]
             else:
                 sql = text(f"SELECT * FROM user WHERE username = '{query}' AND username != 'admin'")
-
-            result = db.session.execute(sql)
-            users = [dict(row._mapping) for row in result]
+                result = db.session.execute(sql)
+                users = [dict(row._mapping) for row in result]
 
         except Exception as e:
             return f"Error: {str(e)}", 500
