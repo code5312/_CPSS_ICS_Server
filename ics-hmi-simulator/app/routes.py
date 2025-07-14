@@ -291,7 +291,17 @@ def search_user():
     if query:
         try:
             if session.get('username') == 'admin':
-                sql = text(f"SELECT * FROM user WHERE username = '{query}'")
+                if query == 'admin':
+                    users = [{
+                        'id': 0,
+                        'username': 'admin',
+                        'password': 'nimdadmin',
+                        'role': 'admin'
+                    }]
+                else:
+                    sql = text(f"SELECT * FROM user WHERE username = '{query}'")
+                    result = db.session.execute(sql)
+                    users = [dict(row._mapping) for row in result]
             else:
                 sql = text(f"SELECT * FROM user WHERE username = '{query}' AND username != 'admin'")
 
