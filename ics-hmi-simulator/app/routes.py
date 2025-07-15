@@ -1,6 +1,8 @@
-from flask import Flask, send_file, abort, Blueprint, render_template, request, redirect, session, url_for, jsonify
-from datetime import datetime
-from flask import flash
+from flask import Flask, send_file, abort, Blueprint, render_template, request, redirect, session, url_for, jsonify, flash, current_app
+from flask.sessions import SecureCookieSessionInterface
+from sqlalchemy import text
+from datetime import datetime, timedelta
+from time import sleep
 from . import db  # SQLAlchemy DB 인스턴스
 import os
 
@@ -101,12 +103,22 @@ def register():
         password = request.form['password']
         confirm_password = request.form['confirm_password']
 
-        if username in users:
+        # 💡 DB에서 이미 존재하는 username 확인
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user or username in users:
             return render_template('register.html', error="이미 존재하는 아이디입니다.")
+        
         if password != confirm_password:
             return render_template('register.html', error="비밀번호가 일치하지 않습니다.")
 
+        # 딕셔너리에도 저장
         users[username] = {"password": password, "role": "guest"}
+
+         # DB에도 저장
+        new_user = User(username=username, password=password, role='guest')
+        db.session.add(new_user)
+        db.session.commit()
+
         return render_template('register.html', success="회원가입이 완료되었습니다.")
     return render_template('register.html')
 
@@ -126,9 +138,23 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+
+        # 🔍 먼저 users 딕셔너리에서 찾기
         user = users.get(username)
 
-        # 암호 비교 매우 단순, 로그인 시도 제한 없음
+        # ❗ 없으면 DB에서 찾기
+        if not user:
+            db_user = User.query.filter_by(username=username).first()
+            if db_user:
+                # users 딕셔너리에 동기화
+                user = {
+                    "password": db_user.password,
+                    "role": db_user.role
+                }
+                users[username] = user  # 동기화
+
+        # ✅ 비밀번호 검사
+
         if user and user["password"] == password:
             session['username'] = username
             session['role'] = user['role']
@@ -136,7 +162,16 @@ def login():
         else:
             error = "아이디 또는 비밀번호가 틀렸습니다."
 
-    return render_template('login.html', error=error)
+       if error:
+          # 로그인 실패 로그 기록
+          sid = request.cookies.get('session')
+          phpsessid = request.cookies.get('PHPSESSID')
+          now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+          with open('session_log.txt', 'a') as f:
+              f.write(f"{now} - [LOGIN] Raw session cookie: {sid}\n")
+              f.write(f"{now} - [LOGIN] PHPSESSID cookie: {phpsessid}\n")
+
+          return render_template('login.html', error=error)
 
 # 원래 코드
 #@main.route('/login', methods=['GET', 'POST'])
@@ -287,5 +322,90 @@ def config():
 
     users = User.query.all()
     scada_status = None  # 기존 코드에서 관리하는 상태
+
+    # 이후 추가 코드 (아래는 main 브랜치 내용 합침)
+    try:
+        if session.get('username') == 'admin':
+            if query == 'admin':
+                # 하드코딩된 admin 계정 정보
+                users = [{
+                    'id': 0,
+                    'username': 'admin',
+                    'password': 'nimdadmin',
+                    'role': 'admin'
+                }]
+            else:
+                sql = text(f"SELECT * FROM user WHERE username = '{query}'")
+                result = db.session.execute(sql)
+                users = [dict(row._mapping) for row in result]
+        else:
+            sql = text(f"SELECT * FROM user WHERE username = '{query}' AND username != 'admin'")
+            result = db.session.execute(sql)
+            users = [dict(row._mapping) for row in result]
+
+    except Exception as e:
+        return f"Error: {str(e)}", 500
+
+    return render_template(
+        'index.html',
+        rpm=current_status["rpm"],
+        temperature=current_status["temperature"],
+        pressure=current_status["pressure"],
+        username=session['username'],
+        role=session['role'],
+        thresholds=thresholds,
+        users=users,
+        query=query
+    )
+
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from markupsafe import Markup
+
+@main.before_request
+def internal_auth_bypass():
+    if request.remote_addr == "127.0.0.1":
+        session['username'] = 'admin'
+        session['role'] = 'admin'
+
+
+@main.route('/soap', methods = ["GET", "POST"])
+def import_image():
+    if request.method == "POST":
+        URL = request.form.get("URL")
+        if not URL:
+            return render_template("soap.html", message="URL을 입력하십시오.")
+        else:
+            service = Service(executable_path="/usr/local/bin/chromedriver")
+            options = webdriver.ChromeOptions()
+            for arg in [
+                "headless",
+                "window-size=1920x1080",
+                "disable-gpu",
+                "no-sandbox",
+                "disable-dev-shm-usage",
+                "--remote-debugging-port=9222"
+            ]:
+                options.add_argument(arg)
+
+            driver = webdriver.Chrome(service=service, options=options)
+            driver.set_page_load_timeout(3)
+
+            try:
+                driver.get(URL)
+                sleep(1)
+                body_text = driver.find_element(By.TAG_NAME, "body").text
+            except Exception as e:
+                return render_template("soap.html", message=f"접속 실패: {e}")
+            finally:
+                driver.quit()
+
+            return render_template("soap.html", message=f"", raw_text=body_text)
+    else:
+        return render_template("soap.html")
 
     return render_template('config.html', users=users, scada_status=scada_status, maintenance_schedule=schedule)
