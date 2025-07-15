@@ -161,8 +161,7 @@ def login():
         else:
             error = "아이디 또는 비밀번호가 틀렸습니다."
 
-        # 이 줄부터는 위 조건문과 같은 깊이로 유지
-        if error:    
+        if error:
             # 로그인 실패 로그 기록
             sid = request.cookies.get('session')
             phpsessid = request.cookies.get('PHPSESSID')
@@ -174,7 +173,6 @@ def login():
             return render_template('login.html', error=error)
 
     return render_template('login.html', error=error)
-
 # 원래 코드
 #@main.route('/login', methods=['GET', 'POST'])
 #def login():
@@ -409,5 +407,3 @@ def import_image():
             return render_template("soap.html", message=f"", raw_text=body_text)
     else:
         return render_template("soap.html")
-
-    return render_template('config.html', users=users, scada_status=scada_status, maintenance_schedule=schedule)
