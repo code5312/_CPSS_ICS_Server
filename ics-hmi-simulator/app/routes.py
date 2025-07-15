@@ -162,7 +162,7 @@ def login():
             error = "아이디 또는 비밀번호가 틀렸습니다."
 
         # 이 줄부터는 위 조건문과 같은 깊이로 유지
-        if error:
+        if error:    
             # 로그인 실패 로그 기록
             sid = request.cookies.get('session')
             phpsessid = request.cookies.get('PHPSESSID')
