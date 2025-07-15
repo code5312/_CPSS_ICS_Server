@@ -162,7 +162,7 @@ def login():
         else:
             error = "아이디 또는 비밀번호가 틀렸습니다."
 
-       if error:
+        if error:
           # 로그인 실패 로그 기록
           sid = request.cookies.get('session')
           phpsessid = request.cookies.get('PHPSESSID')
