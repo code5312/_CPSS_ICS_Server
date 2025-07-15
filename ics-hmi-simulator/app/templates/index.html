@@ -1,174 +1,132 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <title>ICS HMI Simulator</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-    <h1>ICS HMI - 원심분리기 제어</h1>
-    <p>🔄 현재 회전수: <strong><span id="rpm-display">{{ rpm }}</span> RPM</strong></p>
+<!-- index.html -->
+{% extends 'base.html' %}
+{% block title %}대시보드 | ICS HMI{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
 
-    <!-- 실시간 그래프 -->
-    <canvas id="rpmChart" width="600" height="200"></canvas>
-    <canvas id="tempChart" width="600" height="200"></canvas>
-    <canvas id="pressureChart" width="600" height="200"></canvas>
+{% block content %}
+<h2 class="mb-3">ICS HMI - 원심분리기 제어</h2>
+<p>🔄 현재 회전수: <strong><span id="rpm-display">{{ rpm }}</span> RPM</strong></p>
+<canvas id="rpmChart" height="120"></canvas>
+<canvas id="tempChart" height="120"></canvas>
+<canvas id="pressureChart" height="120"></canvas>
+<p id="alert-box" class="mt-3 fw-bold text-danger"></p>
 
-    <!-- 경고 알림 -->
-    <p id="alert-box" style="color: red; font-weight: bold;"></p>
+<!-- ✅ FLAG 출력 영역 -->
+{% if flag %}
+<div class="alert alert-success mt-3">
+  🎉 <strong>FLAG 획득:</strong> {{ flag }}
+</div>
+{% endif %}
 
-    <!-- 실시간 상태 스크립트 -->
-    <script>
-        const rpmMaxThreshold = 3000;
-
-        function createChart(id, label, color) {
-            const ctx = document.getElementById(id).getContext('2d');
-            return new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: label,
-                        data: [],
-                        borderColor: color,
-                        borderWidth: 2,
-                        fill: false
-                    }]
-                },
-                options: {
-                    animation: false,
-                    scales: {
-                        x: { title: { display: true, text: 'Time' }},
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
-        }
-
-        const rpmChart = createChart('rpmChart', 'RPM', 'blue');
-        const tempChart = createChart('tempChart', 'Temperature (°C)', 'orange');
-        const pressureChart = createChart('pressureChart', 'Pressure (bar)', 'green');
-
-        function updateChart(chart, value, label) {
-            if (chart.data.labels.length > 20) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-            }
-            chart.data.labels.push(label);
-            chart.data.datasets[0].data.push(value);
-            chart.update();
-        }
-
-        function fetchStatus() {
-        fetch('/status')
-            .then(response => response.json())
-            .then(data => {
-                const now = new Date().toLocaleTimeString();
-
-                updateChart(rpmChart, data.rpm, now);
-                updateChart(tempChart, data.temperature, now);
-                updateChart(pressureChart, data.pressure, now);
-
-                // 동적으로 전달된 임계값
-                const rpmThreshold = data.thresholds?.rpm ?? 3000;
-                const tempThreshold = data.thresholds?.temperature ?? 80;
-                const pressureThreshold = data.thresholds?.pressure ?? 5.0;
-
-                const alertBox = document.getElementById('alert-box');
-                if (data.rpm >= rpmThreshold) {
-                    alertBox.textContent = `⚠️ RPM 경고! 현재 RPM: ${data.rpm} (임계값: ${rpmThreshold})`;
-                } else if (data.temperature >= tempThreshold) {
-                    alertBox.textContent = `🌡️ 온도 경고! 현재: ${data.temperature}°C (임계값: ${tempThreshold})`;
-                } else if (data.pressure >= pressureThreshold) {
-                    alertBox.textContent = `💨 압력 경고! 현재: ${data.pressure} bar (임계값: ${pressureThreshold})`;
-                } else {
-                    alertBox.textContent = '';
-                }
-            });
-    }
-
-    setInterval(fetchStatus, 1000);
-</script>
-
-    <!-- RPM 제어 -->
-    {% if role == 'admin' %}
-        <form method="POST" action="/set_rpm">
-            <label for="rpm">새 회전수 설정 (RPM):</label>
-            <input type="number" name="rpm" id="rpm" required min="0">
-            <button type="submit">적용</button>
-        </form>
-    {% else %}
-        <p style="color: gray;">게스트는 회전수를 수정할 수 없습니다.</p>
-    {% endif %}
-<hr>
 {% if role == 'admin' %}
-<h3>🛠 상태 설정</h3>
+<form method="POST" action="/set_rpm" class="mt-4">
+  <label for="rpm">새 회전수 설정 (RPM):</label>
+  <input type="number" name="rpm" id="rpm" required min="0" class="form-control">
+  <button type="submit" class="btn btn-primary mt-2">적용</button>
+</form>
+{% else %}
+<p class="text-muted">게스트는 회전수를 수정할 수 없습니다.</p>
+{% endif %}
+
+<hr>
+
+{% if role == 'admin' %}
+<h4>🛠 상태 설정</h4>
 <form method="POST" action="/set_status">
-    <label for="rpm">RPM 설정:</label>
-    <input type="number" name="rpm" value="{{ rpm }}" min="0" max="10000"><br>
-
-    <label for="temperature">현재 온도(°C):</label>
-    <input type="number" step="0.1" name="temperature" value="{{ temperature }}"><br>
-
-    <label for="pressure">현재 압력(bar):</label>
-    <input type="number" step="0.1" name="pressure" value="{{ pressure }}"><br>
-
-    <button type="submit">설정 적용</button>
+  <label>RPM:</label>
+  <input type="number" name="rpm" value="{{ rpm }}" min="0" max="10000" class="form-control">
+  <label>현재 온도(°C):</label>
+  <input type="number" step="0.1" name="temperature" value="{{ temperature }}" class="form-control">
+  <label>현재 압력(bar):</label>
+  <input type="number" step="0.1" name="pressure" value="{{ pressure }}" class="form-control">
+  <button type="submit" class="btn btn-warning mt-2">설정 적용</button>
 </form>
 {% endif %}
 
-{% if success %}
-<p style="color: green;">{{ success }}</p>
+{% if success %}<p class="text-success">{{ success }}</p>{% endif %}
+{% if error %}<p class="text-danger">{{ error }}</p>{% endif %}
+
+{% if role == 'admin' %}
+<hr>
+<h4>🔧 로그인 실패 기록 초기화</h4>
+<form method="POST" action="/admin/reset_user">
+  <label>사용자 ID:</label>
+  <input type="text" name="target_user" class="form-control" required>
+  <button type="submit" class="btn btn-danger mt-2">기록 초기화</button>
+</form>
 {% endif %}
-{% if error %}
-<p style="color: red;">{{ error }}</p>
-{% endif %}
 
-    <!-- 관리자 기능: 로그인 실패 초기화 -->
-    {% if role == 'admin' %}
-        <hr>
-        <h3>🔧 로그인 실패 기록 초기화</h3>
-        <form method="POST" action="/admin/reset_user">
-            <label for="target_user">사용자 ID:</label>
-            <input type="text" name="target_user" id="target_user" required>
-            <button type="submit">기록 초기화</button>
-        </form>
-    {% endif %}
+<form method="GET" action="/logout" class="mt-3">
+  <button type="submit" class="btn btn-outline-secondary">🚪 로그아웃</button>
+</form>
+<a href="{{ url_for('main.board') }}" class="btn btn-link mt-2">📝 소통 게시판 바로가기</a>
+{% endblock %}
 
-    <!-- 로그아웃 -->
-    <form method="GET" action="/logout">
-        <button type="submit">🚪 로그아웃</button>
-    </form>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script>
+const rpmChart = createChart('rpmChart', 'RPM', 'blue');
+const tempChart = createChart('tempChart', 'Temperature (°C)', 'orange');
+const pressureChart = createChart('pressureChart', 'Pressure (bar)', 'green');
 
-    <a href="{{ url_for('main.board') }}">📝 소통 게시판 바로가기</a>
-    <hr>
+function createChart(id, label, color) {
+  const ctx = document.getElementById(id).getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: label,
+        data: [],
+        borderColor: color,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      animation: false,
+      scales: {
+        x: { title: { display: true, text: 'Time' } },
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
 
-    <hr>
-        <h3>사용자 검색</h3>
-        <form method="GET" action="{{ url_for('main.search_user') }}">
-            <input type="text" name="q" placeholder="검색할 사용자 이름 입력" required>
-            <button type="submit">검색</button>
-    </form>
+function updateChart(chart, value, label) {
+  if (chart.data.labels.length > 20) {
+    chart.data.labels.shift();
+    chart.data.datasets[0].data.shift();
+  }
+  chart.data.labels.push(label);
+  chart.data.datasets[0].data.push(value);
+  chart.update();
+}
 
-    {% if query %}
-        <h4>'{{ query }}' 검색 결과:</h4>
-        {% if users %}
-            <ul>
-                {% for user in users %}
-                    <li>
-                        <b>ID:</b> {{ user.id }},
-                        <b>Username:</b> {{ user.username }},
-                        <b>Password:</b> {{ user.password }},
-                        <b>Role:</b> {{ user.role }}
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>❗ 일치하는 사용자가 없습니다.</p>
-        {% endif %}
-    {% endif %}
+function fetchStatus() {
+  fetch('/status')
+    .then(r => r.json())
+    .then(data => {
+      const now = new Date().toLocaleTimeString();
+      updateChart(rpmChart, data.rpm, now);
+      updateChart(tempChart, data.temperature, now);
+      updateChart(pressureChart, data.pressure, now);
 
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-</body>
-</html>
+      const a = document.getElementById('alert-box');
+      if (data.rpm >= (data.thresholds?.rpm ?? 3000)) {
+        a.textContent = `⚠️ RPM 경고! 현재: ${data.rpm}`;
+      } else if (data.temperature >= (data.thresholds?.temperature ?? 80)) {
+        a.textContent = `🌡️ 온도 경고! 현재: ${data.temperature}°C`;
+      } else if (data.pressure >= (data.thresholds?.pressure ?? 5.0)) {
+        a.textContent = `💨 압력 경고! 현재: ${data.pressure} bar`;
+      } else {
+        a.textContent = '';
+      }
+    });
+}
+
+setInterval(fetchStatus, 1000);
+</script>
+{% endblock %}
