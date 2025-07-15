@@ -154,7 +154,6 @@ def login():
                 users[username] = user  # 동기화
 
         # ✅ 비밀번호 검사
-
         if user and user["password"] == password:
             session['username'] = username
             session['role'] = user['role']
@@ -162,16 +161,19 @@ def login():
         else:
             error = "아이디 또는 비밀번호가 틀렸습니다."
 
+        # 이 줄부터는 위 조건문과 같은 깊이로 유지
         if error:
-          # 로그인 실패 로그 기록
-          sid = request.cookies.get('session')
-          phpsessid = request.cookies.get('PHPSESSID')
-          now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-          with open('session_log.txt', 'a') as f:
-              f.write(f"{now} - [LOGIN] Raw session cookie: {sid}\n")
-              f.write(f"{now} - [LOGIN] PHPSESSID cookie: {phpsessid}\n")
+            # 로그인 실패 로그 기록
+            sid = request.cookies.get('session')
+            phpsessid = request.cookies.get('PHPSESSID')
+            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            with open('session_log.txt', 'a') as f:
+                f.write(f"{now} - [LOGIN] Raw session cookie: {sid}\n")
+                f.write(f"{now} - [LOGIN] PHPSESSID cookie: {phpsessid}\n")
 
-          return render_template('login.html', error=error)
+            return render_template('login.html', error=error)
+
+    return render_template('login.html', error=error)
 
 # 원래 코드
 #@main.route('/login', methods=['GET', 'POST'])
