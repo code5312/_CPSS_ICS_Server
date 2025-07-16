@@ -21,7 +21,7 @@ def read_file():
 main = Blueprint('main', __name__)
 
 # 점검 모드 상태 저장 변수
-main.maintenance_mode = False  # False: 정상, True: 점검 중
+main.maintenance_mode = False  # False: 정상, True: 점검 중  # 삭제
 
 # 현재 시스템 상태 변수
 current_status = {
@@ -298,6 +298,8 @@ def toggle_maintenance():
 def config():
     if 'username' not in session or session.get('role') != 'admin':
         return "권한이 없습니다.", 403
+
+    query = request.args.get('query', '')  # ✅ query 정의 추가
 
     # 점검 시간 정보 불러오기 (최신 하나)
     schedule = MaintenanceSchedule.query.order_by(MaintenanceSchedule.id.desc()).first()
