@@ -8,6 +8,8 @@ import os
 
 app = Flask(__name__)
 
+main = Blueprint('main', __name__)
+
 # 점검 모드 상태 저장 변수
 main.maintenance_mode = False  # False: 정상, True: 점검 중  # 삭제
 
@@ -346,7 +348,6 @@ def read_file():
         return send_file(file_path)
     except FileNotFoundError:
         abort(404)
-main = Blueprint('main', __name__)
 
 # -- 가진섭 취약점 1: SSRF -------------------------------------------------------------------
 from selenium import webdriver
