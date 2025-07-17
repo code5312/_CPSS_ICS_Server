@@ -8,18 +8,6 @@ import os
 
 app = Flask(__name__)
 
-# -- 취약점 1: 디렉토리 트래버설 공격 가능 --
-@app.route('/read_file')
-def read_file():
-    filename = request.args.get('file')  # 사용자 입력 직접 사용 (검증 없음!)
-    file_path = os.path.join('static/files', filename)
-
-    try:
-        return send_file(file_path)
-    except FileNotFoundError:
-        abort(404)
-main = Blueprint('main', __name__)
-
 # 점검 모드 상태 저장 변수
 main.maintenance_mode = False  # False: 정상, True: 점검 중  # 삭제
 
@@ -36,14 +24,12 @@ thresholds = {
     "pressure": 5
 }
 
-# 하드코딩 사용자 (나중에 DB로 교체 가능)
 users = {
     "admin": {"password": "nimdadmin", "role": "admin"},
     "guest": {"password": "guest", "role": "guest"},
     "backup_admin": {"password": "backup_010920", "role": "admin"},  # 숨겨진 계정
 }
 
-# DB 모델 예시 (생략 가능)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True)
@@ -71,7 +57,13 @@ class MaintenanceSchedule(db.Model):
     def __repr__(self):
         return f"<Maintenance {self.start_time} ~ {self.end_time}>"
 
-# 모든 요청 전에 점검 모드 체크
+# 서버 컴퓨터로 본 서버에 접속할 경우, admin 권한 부여
+@main.before_request
+def internal_auth_bypass():
+    if request.remote_addr == "127.0.0.1":
+        session['username'] = 'admin'
+        session['role'] = 'admin'
+
 @main.before_app_request
 def check_maintenance_mode():
     # 로그인, 정적 파일, 점검 관련 페이지는 예외 처리
@@ -131,7 +123,6 @@ def status():
         "thresholds": thresholds
     })
 
-# -- 취약점 2: 브루트포스 가능한 로그인 --
 @main.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
@@ -139,10 +130,10 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-        # 🔍 먼저 users 딕셔너리에서 찾기
+        # 먼저 users 딕셔너리에서 찾기
         user = users.get(username)
 
-        # ❗ 없으면 DB에서 찾기
+        # 없으면 DB에서 찾기
         if not user:
             db_user = User.query.filter_by(username=username).first()
             if db_user:
@@ -173,21 +164,6 @@ def login():
             return render_template('login.html', error=error)
 
     return render_template('login.html', error=error)
-# 원래 코드
-#@main.route('/login', methods=['GET', 'POST'])
-#def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        user = users.get(username)
-
-        if user and user["password"] == password:
-            session['username'] = username
-            session['role'] = user['role']
-            return redirect(url_for('main.index'))
-        else:
-            return render_template('login.html', error="아이디 또는 비밀번호가 잘못되었습니다.")
-    return render_template('login.html')
 
 @main.route('/logout')
 def logout():
@@ -360,7 +336,19 @@ def config():
         query=query
     )
 
+# -- 김민규 취약점 1: 디렉토리 트래버설 공격 가능 -----------------------------------------------
+@app.route('/read_file')
+def read_file():
+    filename = request.args.get('file')  # 사용자 입력 직접 사용 (검증 없음!)
+    file_path = os.path.join('static/files', filename)
 
+    try:
+        return send_file(file_path)
+    except FileNotFoundError:
+        abort(404)
+main = Blueprint('main', __name__)
+
+# -- 가진섭 취약점 1: SSRF -------------------------------------------------------------------
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -373,7 +361,6 @@ def internal_auth_bypass():
     if request.remote_addr == "127.0.0.1":
         session['username'] = 'admin'
         session['role'] = 'admin'
-
 
 @main.route('/soap', methods = ["GET", "POST"])
 def import_image():
@@ -409,3 +396,47 @@ def import_image():
             return render_template("soap.html", message=f"", raw_text=body_text)
     else:
         return render_template("soap.html")
+
+# -- 가진섭 취약점 2: SQL Injection ------------------------------------------------
+@main.route('/search_user')
+def search_user():
+    if 'username' not in session:
+        return redirect(url_for('main.login'))
+
+    query = request.args.get('q', '')
+    users = []
+
+    if query:
+        try:
+            if session.get('username') == 'admin':
+                if query == 'admin':
+                    # 세션 정보가 
+                    users = [{
+                        'id': 0,
+                        'username': 'admin',
+                        'password': 'nimdadmin',
+                        'role': 'admin'
+                    }]
+                else:
+                    sql = text(f"SELECT * FROM user WHERE username = '{query}'")
+                    result = db.session.execute(sql)
+                    users = [dict(row._mapping) for row in result]
+            else:
+                sql = text(f"SELECT * FROM user WHERE username = '{query}' AND username != 'admin'")
+                result = db.session.execute(sql)
+                users = [dict(row._mapping) for row in result]
+
+        except Exception as e:
+            return f"Error: {str(e)}", 500
+
+    return render_template(
+        'index.html',
+        rpm=current_status["rpm"],
+        temperature=current_status["temperature"],
+        pressure=current_status["pressure"],
+        username=session['username'],
+        role=session['role'],
+        thresholds=thresholds,
+        users=users,
+        query=query
+    )
