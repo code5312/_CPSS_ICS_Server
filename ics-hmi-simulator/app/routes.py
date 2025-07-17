@@ -1,4 +1,4 @@
-from flask import Flask, send_file, abort, Blueprint, render_template, request, redirect, session, url_for, jsonify, flash, current_app
+from flask import Flask, send_file, abort, Blueprint, render_template, request, redirect, session, url_for, jsonify, flash, current_app, send_from_directory
 from flask.sessions import SecureCookieSessionInterface
 from sqlalchemy import text
 from datetime import datetime, timedelta
@@ -443,6 +443,10 @@ def search_user():
         query=query
     )
 # -- 양동현 취약점 1 ------------------------------------------------
+import string
+import re
+import os
+
 def is_filtered(expr):
     allowed = list(string.ascii_letters + string.digits + "+-*/(). ")
     banned_keywords = ["import", "open", "exec", "os", "system", "read", "subprocess", "__", "flag"]
