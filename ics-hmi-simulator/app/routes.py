@@ -444,6 +444,7 @@ def search_user():
     )
 # -- 양동현 취약점 1 ------------------------------------------------
 import string
+import subprocess
 import re
 import os
 
@@ -461,6 +462,8 @@ def is_filtered(expr):
 
 @main.route("/nono20", methods=["GET", "POST"])
 def donghyeon():
+    if request.method == "GET":
+        return render_template("index.html")
     if request.method == "POST":
         if "flag" in request.form:
             user_flag = request.form.get("flag", "").strip()
@@ -470,18 +473,19 @@ def donghyeon():
                 return '''<script>alert("False!"); window.location.href="/nono20";</script>'''
 
         formula = request.form.get("formula", "")
-        if formula == "":
-            return render_template("donghyeon.html", result="Please enter a formula.")
-
-        if is_filtered(formula):
-            return render_template("donghyeon.html", result="Blocked: expression filtered.")
-
-        try:
-            result = eval(formula)
-            return render_template("donghyeon.html", result=result)
-        except Exception as e:
-            return render_template("donghyeon.html", result=f"Error: {str(e)}")
-    return render_template("donghyeon.html")
+        if formula != "":
+            if is_filtered(formula):
+                return render_template("index.html", result="Filtered")
+            else:
+                try:
+                    result = eval(formula)
+                    return render_template("index.html", result=result)
+                except subprocess.CalledProcessError:
+                    return render_template("index.html", result=f"Error")
+                except Exception as e:
+                    return render_template("index.html", result=f"Error: {str(e)}")
+        else:
+            return render_template("index.html")
 
 @main.route("/download/<filename>")
 def download(filename):
