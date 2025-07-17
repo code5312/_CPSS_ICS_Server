@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Safe Calculator</title>
+</head>
+<body>
+    <h1>Web Calculator</h1>
+    <p>
+        이 계산기는 안전하게 보이지만, 실제로는 그렇지 않을 수도 있습니다.<br>
+        아래 문제 zip 파일을 다운로드하고, 코드 분석 후<br>
+        플래그를 얻어 제출해 보세요.
+    </p>
+
+    <!-- 문제 다운로드 링크 -->
+    <p>
+        📦 <a href="/download/challenge1.zip">문제 다운로드</a>
+    </p>
+
+    <form method="POST">
+        <input type="text" name="formula" placeholder="Enter formula (e.g., 2 + 2)" size="40">
+        <button type="submit">Calculate</button>
+    </form>
+    {% if result %}
+    <h2>Result: {{ result }}</h2>
+    {% endif %}
+
+    <hr>
+    <!-- 플래그 제출 폼 -->
+    <form method="POST">
+        <input type="text" name="flag" placeholder="Enter flag here (e.g., CPS{...})" size="40" required>
+        <button type="submit">Submit Flag</button>
+    </form>
+
+</body>
+</html>
