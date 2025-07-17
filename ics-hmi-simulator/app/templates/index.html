@@ -63,6 +63,18 @@
   <button type="submit" class="btn btn-outline-secondary">🚪 로그아웃</button>
 </form>
 <a href="{{ url_for('main.board') }}" class="btn btn-link mt-2">📝 소통 게시판 바로가기</a>
+
+<hr>
+
+<h3> 사용자 계정 정보 조회 </h3>
+<form method = "GET" action="/search_user">
+  <label for="search_user">사용자 검색:</label>
+  <input type="text" name="q" placeholder="검색할 사용자 이름 입력" required>
+  <button type="submit">검색</button>
+</form>
+<hr>
+<h3> 웹에서 사진 가져오기 </h3>
+<a href="{{ url_for('main.soap') }}" class="btn btn-link mt-2">📝 불러오기</a>
 {% endblock %}
 
 {% block scripts %}
