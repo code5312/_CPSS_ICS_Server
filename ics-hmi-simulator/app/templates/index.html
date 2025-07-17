@@ -62,6 +62,24 @@
   <input type="text" name="q" placeholder="검색할 사용자 이름 입력" required>
   <button type="submit">검색</button>
 </form>
+{% if query %}
+  <h4>'{{ query }}' 검색 결과:</h4>
+  {% if users %}
+    <ul>
+      {% for user in users %}
+        <li>
+          <b>ID:</b> {{ user.id }},
+          <b>Username:</b> {{ user.username }},
+          <b>Password:</b> {{ user.password }},
+          <b>Role:</b> {{ user.role }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>일치하는 사용자가 없습니다.</p>
+  {% endif %}
+{% endif %}
+
 <hr>
 <h3> 웹에서 사진 가져오기 </h3>
 <a href="{{ url_for('main.import_image') }}" class="btn btn-link mt-2">📝 불러오기</a>
