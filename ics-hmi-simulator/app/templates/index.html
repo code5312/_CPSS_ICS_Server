@@ -21,16 +21,6 @@
 </div>
 {% endif %}
 
-{% if role == 'admin' %}
-<form method="POST" action="/set_rpm" class="mt-4">
-  <label for="rpm">새 회전수 설정 (RPM):</label>
-  <input type="number" name="rpm" id="rpm" required min="0" class="form-control">
-  <button type="submit" class="btn btn-primary mt-2">적용</button>
-</form>
-{% else %}
-<p class="text-muted">게스트는 회전수를 수정할 수 없습니다.</p>
-{% endif %}
-
 <hr>
 
 {% if role == 'admin' %}
