@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 from flask import Flask, request, render_template, send_from_directory
+import subprocess
 import string
 import re
 import os
@@ -22,6 +23,8 @@ def is_filtered(expr):
 
 @app.route("/nono20", methods=["GET", "POST"])
 def index():
+    if request.method == "GET":
+        return render_template("index.html")
     if request.method == "POST":
         if "flag" in request.form:
             user_flag = request.form.get("flag", "").strip()
@@ -31,18 +34,19 @@ def index():
                 return '''<script>alert("False!"); window.location.href="/nono20";</script>'''
 
         formula = request.form.get("formula", "")
-        if formula == "":
-            return render_template("index.html", result="Please enter a formula.")
-
-        if is_filtered(formula):
-            return render_template("index.html", result="Blocked: expression filtered.")
-
-        try:
-            result = eval(formula)
-            return render_template("index.html", result=result)
-        except Exception as e:
-            return render_template("index.html", result=f"Error: {str(e)}")
-    return render_template("index.html")
+        if formula != "":
+            if is_filtered(formula):
+                return render_template("index.html", result="Filtered")
+            else:
+                try:
+                    result = eval(formula)
+                    return render_template("index.html", result=result)
+                except subprocess.CalledProcessError:
+                    return render_template("index.html", result=f"Error")
+                except Exception as e:
+                    return render_template("index.html", result=f"Error: {str(e)}")
+        else:
+            return render_template("index.html")
 
 @app.route("/download/<filename>")
 def download(filename):
