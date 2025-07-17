@@ -456,7 +456,7 @@ def is_filtered(expr):
 
 
 @main.route("/nono20", methods=["GET", "POST"])
-def index():
+def donghyeon():
     if request.method == "POST":
         if "flag" in request.form:
             user_flag = request.form.get("flag", "").strip()
@@ -467,17 +467,17 @@ def index():
 
         formula = request.form.get("formula", "")
         if formula == "":
-            return render_template("index.html", result="Please enter a formula.")
+            return render_template("donghyeon.html", result="Please enter a formula.")
 
         if is_filtered(formula):
-            return render_template("index.html", result="Blocked: expression filtered.")
+            return render_template("donghyeon.html", result="Blocked: expression filtered.")
 
         try:
             result = eval(formula)
-            return render_template("index.html", result=result)
+            return render_template("donghyeon.html", result=result)
         except Exception as e:
-            return render_template("index.html", result=f"Error: {str(e)}")
-    return render_template("index.html")
+            return render_template("donghyeon.html", result=f"Error: {str(e)}")
+    return render_template("donghyeon.html")
 
 @main.route("/download/<filename>")
 def download(filename):
