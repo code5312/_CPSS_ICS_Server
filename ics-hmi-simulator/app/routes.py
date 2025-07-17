@@ -7,7 +7,7 @@ from . import db  # SQLAlchemy DB 인스턴스
 import os
 
 app = Flask(__name__)
-app.flag = open("flag.txt").read().strip()
+app.flag = open("/home/bteam/Desktop/_CPSS_ICS_Server/ics-hmi-simulator/app/flag.txt").read().strip()
 
 main = Blueprint('main', __name__)
 
