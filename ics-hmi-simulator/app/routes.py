@@ -463,7 +463,7 @@ def is_filtered(expr):
 @main.route("/nono20", methods=["GET", "POST"])
 def donghyeon():
     if request.method == "GET":
-        return render_template("index.html")
+        return render_template("donghyeon.html")
     if request.method == "POST":
         if "flag" in request.form:
             user_flag = request.form.get("flag", "").strip()
@@ -475,17 +475,17 @@ def donghyeon():
         formula = request.form.get("formula", "")
         if formula != "":
             if is_filtered(formula):
-                return render_template("index.html", result="Filtered")
+                return render_template("donghyeon.html", result="Filtered")
             else:
                 try:
                     result = eval(formula)
-                    return render_template("index.html", result=result)
+                    return render_template("donghyeon.html", result=result)
                 except subprocess.CalledProcessError:
-                    return render_template("index.html", result=f"Error")
+                    return render_template("donghyeon.html", result=f"Error")
                 except Exception as e:
-                    return render_template("index.html", result=f"Error: {str(e)}")
+                    return render_template("donghyeon.html", result=f"Error: {str(e)}")
         else:
-            return render_template("index.html")
+            return render_template("donghyeon.html")
 
 @main.route("/download/<filename>")
 def download(filename):
