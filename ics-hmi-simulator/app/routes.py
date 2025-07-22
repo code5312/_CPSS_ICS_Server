@@ -489,4 +489,4 @@ def donghyeon():
 
 @main.route("/download/<filename>")
 def download(filename):
-    return send_from_directory("/home/bteam/Desktop/_CPSS_ICS_Server/ics-hmi-simulator/app/static/problems", filename, as_attachment=True)
+    return send_from_directory("/home/bteam/Desktop/_CPSS_ICS_Server/ics-hmi-simulator/app/static/problem", filename, as_attachment=True)
